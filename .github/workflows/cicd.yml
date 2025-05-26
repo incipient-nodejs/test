@@ -20,7 +20,7 @@
 #           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "ls"
 #           rm -f key.pem
 
-name: CI/CD
+name: CICD
 
 on:
   push:
@@ -28,37 +28,41 @@ on:
       - main
 
 jobs:
-  deploy:
+  sync-repo:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy application
+      - name: Deploy repository
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           GITHUB_REPO: ${{ github.repository }}
+          TARGET_DIR: "/myapp"
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-
-          # Use the current repository's SSH URL
+          
           REPO_URL="git@github.com:${GITHUB_REPO}.git"
-
+          
           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
-            if [ -d '/myapp/.git' ]; then
-              echo 'Repository exists, pulling latest changes...'
-              cd /myapp
+            # Create target directory if it doesn't exist
+            mkdir -p "$TARGET_DIR"
+            
+            # Check if repository exists
+            if [ -d "$TARGET_DIR/.git" ]; then
+              echo "Updating existing repository..."
+              cd "$TARGET_DIR"
               git remote set-url origin "$REPO_URL"
-              git pull origin main
+              git fetch origin
+              git reset --hard origin/main
             else
-              echo 'Cloning repository...'
-              git clone "$REPO_URL" /myapp
-              cd /myapp
+              echo "Cloning repository..."
+              git clone "$REPO_URL" "$TARGET_DIR"
             fi
             
-            # Install dependencies and restart application
-            npm install --production
-            pm2 restart myapp || pm2 start npm --name "myapp" -- start
+            # Verify synchronization
+            echo "Repository synchronized to:"
+            cd "$TARGET_DIR" && git log -1 --oneline
           EOF
           
           rm -f key.pem
