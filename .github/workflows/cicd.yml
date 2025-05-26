@@ -1,3 +1,25 @@
+# name: Express CI/CD
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Login to the server and run command
+#         env:
+#           SSH_HOST: ${{ secrets.SSH_HOST }}
+#           SSH_USER: ${{ secrets.SSH_USER }}
+#           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+#         run: |
+#           echo "$SSH_PRIVATE_KEY" > key.pem
+#           chmod 600 key.pem
+#           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "ls"
+#           rm -f key.pem
+
 name: Express CI/CD
 
 on:
@@ -9,13 +31,29 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Login to the server and run command
+      - name: Deploy application
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          GITHUB_REPO: ${{ github.repository }}
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "ls"
+
+          # Use the current repository's SSH URL
+          REPO_URL="git@github.com:${GITHUB_REPO}.git"
+
+          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "
+            if [ -d '/myapp/.git' ]; then
+              echo 'Repository exists, pulling latest changes...'
+              cd /myapp
+              git remote set-url origin '$REPO_URL'
+              git pull origin main
+            else
+              echo 'Cloning repository...'
+              git clone '$REPO_URL' /myapp
+              cd /myapp
+            fi
+            
           rm -f key.pem
