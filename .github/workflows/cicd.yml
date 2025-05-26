@@ -20,7 +20,7 @@
 #           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "ls"
 #           rm -f key.pem
 
-name: CICD
+name: Repository Synchronization
 
 on:
   push:
@@ -31,22 +31,25 @@ jobs:
   sync-repo:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy repository
+      - name: Synchronize repository
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           GITHUB_REPO: ${{ github.repository }}
-          TARGET_DIR: "/myapp"
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
           
+          # Define target directory and repo URL
+          TARGET_DIR="/myapp"
           REPO_URL="git@github.com:${GITHUB_REPO}.git"
           
-          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << 'EOF'
+          # Use double quotes for variable expansion in heredoc
+          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST << EOF
             # Create target directory if it doesn't exist
-            mkdir -p "$TARGET_DIR"
+            sudo mkdir -p "$TARGET_DIR"
+            sudo chown -R $SSH_USER:$SSH_USER "$TARGET_DIR"
             
             # Check if repository exists
             if [ -d "$TARGET_DIR/.git" ]; then
