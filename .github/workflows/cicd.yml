@@ -17,5 +17,5 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "~/test/deploy.sh"
+          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x ~/test/deploy.sh && bash ~/test/deploy.sh"
           rm -f key.pem
