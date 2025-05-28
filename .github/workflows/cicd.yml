@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "ls"
+          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "bash ~/test/deploy.sh"
           rm -f key.pem
 
 # name: Repository Synchronization
