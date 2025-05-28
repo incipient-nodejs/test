@@ -66,10 +66,10 @@ cd "$APP_DIR" || { echo "❌ Directory $APP_DIR not found! Exiting."; exit 1; }
 git pull origin main || { echo "❌ Git pull failed! Exiting."; exit 1; }
 
 echo "▶ Installing dependencies..."
-npm install --production || { echo "❌ npm install failed! Exiting."; exit 1; }
+npm install || { echo "❌ npm install failed! Exiting."; exit 1; }
 
-echo "▶ Building app..."
-npm run build || echo "⚠️ Build step skipped or failed."
+# echo "▶ Building app..."
+# npm run build || echo "⚠️ Build step skipped or failed."
 
 echo "▶ Restarting app with PM2..."
 pm2 restart your-app || pm2 start npm --name "your-app" -- start
