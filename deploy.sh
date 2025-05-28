@@ -63,6 +63,7 @@ fi
 echo "▶ Pulling latest code..."
 cd "$APP_DIR" || { echo "❌ Directory $APP_DIR not found! Exiting."; exit 1; }
 
+git stash || { echo "❌ Git stash failed! Exiting."; exit 1; }
 git pull origin main || { echo "❌ Git pull failed! Exiting."; exit 1; }
 
 echo "▶ Installing dependencies..."
