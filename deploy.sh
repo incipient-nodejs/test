@@ -1,80 +1,47 @@
-# #!/bin/bash
-
-# echo "▶ Pulling latest code..."
-# cd /home/ubuntu/test || { echo "Directory not found! Exiting."; exit 1; }
-
-# # Pull latest code
-# git pull origin main
-
-# # Install dependencies
-# echo "▶ Installing dependencies..."
-# npm install --production
-
-# # Build (optional)
-# echo "▶ Building app..."
-# npm run build || echo "No build step"
-
-# # Restart app
-# echo "▶ Restarting app with PM2..."
-# pm2 restart your-app || pm2 start npm --name "your-app" -- start
-
-# echo "✅ Deployment complete."
-
-
 #!/bin/bash
+set -e
 
-APP_DIR="/home/ubuntu/test"
-NODE_VERSION="lts/*"  # change to specific version like "18" if needed
+# Auto-detect the directory this script is in (i.e., the app root)
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_NAME="$(basename "$APP_DIR")"
 
-echo "▶ Starting deployment..."
+echo "▶ Starting deployment for $APP_NAME"
+echo "▶ APP_DIR: $APP_DIR"
 
 # Ensure NVM is installed
 if [ -d "$HOME/.nvm" ]; then
   echo "▶ NVM is already installed."
 else
-  echo "▶ NVM not found. Installing NVM..."
+  echo "▶ Installing NVM..."
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 fi
 
-# Load NVM
+# Load NVM into current shell
 export NVM_DIR="$HOME/.nvm"
 # shellcheck disable=SC1090
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
 
-if ! command -v nvm &>/dev/null; then
-  echo "❌ NVM installation failed. Exiting."
-  exit 1
-fi
+# Use latest LTS version of Node
+nvm install --lts
+nvm use --lts
 
-# Install and use Node
-echo "▶ Installing Node.js version: $NODE_VERSION"
-nvm install $NODE_VERSION
-nvm use $NODE_VERSION
-
-# Ensure PM2 is installed
+# Ensure PM2 is available
+export PATH="$PATH:$(npm bin -g)"
 if ! command -v pm2 &>/dev/null; then
-  echo "▶ PM2 not found. Installing PM2 globally..."
+  echo "▶ Installing PM2 globally..."
   npm install -g pm2
-else
-  echo "▶ PM2 is already installed."
 fi
 
-# Navigate to app directory
-echo "▶ Pulling latest code..."
-cd "$APP_DIR" || { echo "❌ Directory $APP_DIR not found! Exiting."; exit 1; }
-
-git stash || { echo "❌ Git stash failed! Exiting."; exit 1; }
-git pull origin main || { echo "❌ Git pull failed! Exiting."; exit 1; }
+# Move into the app directory
+cd "$APP_DIR"
 
 echo "▶ Installing dependencies..."
-npm install || { echo "❌ npm install failed! Exiting."; exit 1; }
+npm install --production
 
-# echo "▶ Building app..."
-# npm run build || echo "⚠️ Build step skipped or failed."
+echo "▶ Building app (if build script is defined)..."
+npm run build || echo "⚠️ No build script found or skipped."
 
 echo "▶ Restarting app with PM2..."
-pm2 restart your-app || pm2 start npm --name "your-app" -- start
+pm2 restart "$APP_NAME" || pm2 start npm --name "$APP_NAME" -- start
 
-echo "✅ Deployment complete."
-
-
+echo "✅ Deployment for $APP_NAME completed."

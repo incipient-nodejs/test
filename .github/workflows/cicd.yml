@@ -68,17 +68,13 @@ jobs:
               git pull origin "$BRANCH"
             fi
 
-            cd "\$APP_DIR"
-            echo "▶ Installing dependencies..."
-            npm install --production
+            echo "▶ Making deploy.sh executable..."
+            chmod +x "\$APP_DIR/deploy.sh"
 
-            echo "▶ Building app (if defined)..."
-            npm run build || echo "⚠️ No build script or build failed."
+            echo "▶ Running deploy.sh inside \$APP_DIR"
+            bash "\$APP_DIR/deploy.sh"
 
-            echo "▶ Restarting with PM2..."
-            pm2 restart "$APP_NAME" || pm2 start npm --name "$APP_NAME" -- start
-
-            echo "✅ Deployment complete to \$APP_DIR"
+            echo "✅ Deployment completed via deploy.sh"
           EOF
 
           rm -f key.pem
