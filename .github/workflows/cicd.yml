@@ -1,4 +1,26 @@
-name: CI/CD
+# name: CI/CD
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Login to the server and run command
+#         env:
+#           SSH_HOST: ${{ secrets.SSH_HOST }}
+#           SSH_USER: ${{ secrets.SSH_USER }}
+#           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+#         run: |
+#           echo "$SSH_PRIVATE_KEY" > key.pem
+#           chmod 600 key.pem
+#           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x ~/test/deploy.sh && bash ~/test/deploy.sh"
+#           rm -f key.pem
+
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,14 +30,42 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Login to the server and run command
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+
+      - name: Deploy to EC2
         run: |
-          echo "$SSH_PRIVATE_KEY" > key.pem
-          chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x ~/test/deploy.sh && bash ~/test/deploy.sh"
-          rm -f key.pem
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.EC2_HOST }} <<EOF
+            set -e
+
+            REPO="${{ github.repository }}"
+            BRANCH="${{ github.ref_name }}"
+            APP_DIR="\$HOME/\$(basename \$REPO)"  # e.g., ~/my-repo
+            REPO_URL="git@github.com:\$REPO.git"
+
+            echo "▶ Using APP_DIR: \$APP_DIR"
+            if [ ! -d "\$APP_DIR/.git" ]; then
+              echo "▶ Cloning repository \$REPO_URL..."
+              git clone -b \$BRANCH "\$REPO_URL" "\$APP_DIR"
+            else
+              echo "▶ Pulling latest from branch \$BRANCH..."
+              cd "\$APP_DIR"
+              git pull origin \$BRANCH
+            fi
+
+            cd "\$APP_DIR"
+            echo "▶ Installing dependencies..."
+            npm install --production
+
+            echo "▶ Building app (if defined)..."
+            npm run build || echo "⚠️ No build script or build failed."
+
+            echo "▶ Restarting with PM2..."
+            pm2 restart \$REPO || pm2 start npm --name "\$REPO" -- start
+
+            echo "✅ Deployment complete to \$APP_DIR"
+          EOF
