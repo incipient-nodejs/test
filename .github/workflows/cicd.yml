@@ -38,15 +38,17 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_BRANCH: ${{ github.ref_name }}
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
 
-          ssh -i key.pem -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << 'EOF'
+          ssh -i key.pem -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" <<EOF
             set -e
 
-            REPO="${{ github.repository }}"
-            BRANCH="${{ github.ref_name }}"
+            REPO="$GITHUB_REPO"
+            BRANCH="$GITHUB_BRANCH"
             APP_DIR="\$HOME/\$(basename \$REPO)"
             REPO_URL="git@github.com:\$REPO.git"
 
@@ -73,4 +75,5 @@ jobs:
             echo "✅ Deployment complete to \$APP_DIR"
           EOF
 
-          rm -f key.pem
+            rm -f key.pem
+
