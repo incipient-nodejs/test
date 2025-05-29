@@ -1,26 +1,3 @@
-# name: CI/CD
-
-# on:
-#   push:
-#     branches:
-#       - main
-
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Login to the server and run command
-#         env:
-#           SSH_HOST: ${{ secrets.SSH_HOST }}
-#           SSH_USER: ${{ secrets.SSH_USER }}
-#           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-#         run: |
-#           echo "$SSH_PRIVATE_KEY" > key.pem
-#           chmod 600 key.pem
-#           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x ~/test/deploy.sh && bash ~/test/deploy.sh"
-#           rm -f key.pem
-
-
 name: CI/CD Pipeline
 
 on:
