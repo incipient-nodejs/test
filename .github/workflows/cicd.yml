@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy the application
+      - name: Deploy Application to Server
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
@@ -47,10 +47,10 @@ jobs:
           ssh -i key.pem -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" <<EOF
             set -e
 
-            REPO="$GITHUB_REPO"
-            BRANCH="$GITHUB_BRANCH"
+            REPO="\$GITHUB_REPO"
+            BRANCH="\$GITHUB_BRANCH"
             APP_DIR="\$HOME/\$(basename \$REPO)"
-            REPO_URL="git@github.com:\$REPO.git"
+            REPO_URL="https://github.com/\$REPO.git"
 
             echo "▶ Using APP_DIR: \$APP_DIR"
             if [ ! -d "\$APP_DIR/.git" ]; then
@@ -75,5 +75,6 @@ jobs:
             echo "✅ Deployment complete to \$APP_DIR"
           EOF
 
-            rm -f key.pem
+          rm -f key.pem
+
 
