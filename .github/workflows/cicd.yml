@@ -20,6 +20,7 @@
 #           ssh -i key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "chmod +x ~/test/deploy.sh && bash ~/test/deploy.sh"
 #           rm -f key.pem
 
+
 name: CI/CD Pipeline
 
 on:
@@ -32,19 +33,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up SSH Agent
-        uses: webfactory/ssh-agent@v0.5.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Deploy to EC2
+      - name: Deploy the application
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+
+          ssh -i key.pem -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" << 'EOF'
             set -e
 
             REPO="${{ github.repository }}"
             BRANCH="${{ github.ref_name }}"
-            APP_DIR="\$HOME/\$(basename \$REPO)"  # e.g., ~/my-repo
+            APP_DIR="\$HOME/\$(basename \$REPO)"
             REPO_URL="git@github.com:\$REPO.git"
 
             echo "▶ Using APP_DIR: \$APP_DIR"
@@ -65,7 +68,9 @@ jobs:
             npm run build || echo "⚠️ No build script or build failed."
 
             echo "▶ Restarting with PM2..."
-            pm2 restart \$REPO || pm2 start npm --name "\$REPO" -- start
+            pm2 restart \$(basename \$REPO) || pm2 start npm --name "\$(basename \$REPO)" -- start
 
             echo "✅ Deployment complete to \$APP_DIR"
           EOF
+
+          rm -f key.pem
