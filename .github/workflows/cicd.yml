@@ -38,28 +38,34 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          GITHUB_REPO: ${{ github.repository }}
-          GITHUB_BRANCH: ${{ github.ref_name }}
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
 
+          # Dynamically resolve repo name and branch on GitHub runner
+          REPO="${{ github.repository }}"        
+          BRANCH="${{ github.ref_name }}"       
+          APP_NAME=$(basename "$REPO")
+
+          echo "▶ Repo: $REPO"
+          echo "▶ Branch: $BRANCH"
+          echo "▶ App name: $APP_NAME"
+
+          # SSH and run deploy
           ssh -i key.pem -o StrictHostKeyChecking=no "$SSH_USER@$SSH_HOST" <<EOF
             set -e
 
-            REPO="\$GITHUB_REPO"
-            BRANCH="\$GITHUB_BRANCH"
-            APP_DIR="\$HOME/\$(basename \$REPO)"
-            REPO_URL="https://github.com/\$REPO.git"
+            APP_DIR="\$HOME/$APP_NAME"
+            REPO_URL="https://github.com/$REPO.git"
 
             echo "▶ Using APP_DIR: \$APP_DIR"
             if [ ! -d "\$APP_DIR/.git" ]; then
               echo "▶ Cloning repository \$REPO_URL..."
-              git clone -b \$BRANCH "\$REPO_URL" "\$APP_DIR"
+              git clone -b "$BRANCH" "\$REPO_URL" "\$APP_DIR"
             else
-              echo "▶ Pulling latest from branch \$BRANCH..."
+              echo "▶ Pulling latest from branch $BRANCH..."
               cd "\$APP_DIR"
-              git pull origin \$BRANCH
+              git pull origin "$BRANCH"
             fi
 
             cd "\$APP_DIR"
@@ -70,11 +76,10 @@ jobs:
             npm run build || echo "⚠️ No build script or build failed."
 
             echo "▶ Restarting with PM2..."
-            pm2 restart \$(basename \$REPO) || pm2 start npm --name "\$(basename \$REPO)" -- start
+            pm2 restart "$APP_NAME" || pm2 start npm --name "$APP_NAME" -- start
 
             echo "✅ Deployment complete to \$APP_DIR"
           EOF
 
           rm -f key.pem
-
 
