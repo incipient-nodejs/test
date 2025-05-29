@@ -35,11 +35,11 @@ jobs:
       - name: Set up SSH Agent
         uses: webfactory/ssh-agent@v0.5.0
         with:
-          ssh-private-key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Deploy to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.EC2_HOST }} <<EOF
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} <<EOF
             set -e
 
             REPO="${{ github.repository }}"
